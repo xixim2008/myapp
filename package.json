@@ -1,0 +1,14 @@
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "个人工作生活专属本地工作台（纯本地、零依赖、数据存本机 JSON）",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

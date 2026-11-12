@@ -1,0 +1,14 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+data/*.json
+data/*.json.bak
+data/*.json.tmp
+data/*.json.corrupted
+data-before-import-*.json
+!data/.gitkeep
+
+# 本地工作区记忆与临时文件
+.workbuddy/

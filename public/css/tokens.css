@@ -1,0 +1,126 @@
+/* 设计令牌：颜色、间距、字号、圆角。所有页面只使用这里的变量，避免风格漂移。 */
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* 中性色：暖纸底 + 墨黑文字 */
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-2: #fbfaf8;
+  --surface-3: #f2f1ed;
+  --sidebar-bg: #fcfbf9;
+
+  --text: #1c1b19;
+  --text-2: #6b6862;
+  --text-3: #9c988f;
+
+  --border: #e8e6e1;
+  --border-2: #d7d3cb;
+
+  --ink: #1c1b19;
+  --ink-hover: #33312d;
+  --on-ink: #fdfcfa;
+
+  --success: #2f6d54;
+  --success-soft: #e8f1ec;
+  --danger: #a93a34;
+  --danger-soft: #fbeceb;
+  --warning: #9a6a1f;
+  --warning-soft: #f9f0df;
+  --info: #2f5d9e;
+  --info-soft: #ecf1f8;
+
+  /* 模块色 */
+  --m-content: #b04a3e;
+  --m-content-soft: #f8ecea;
+  --m-dev: #2f5d9e;
+  --m-dev-soft: #ecf1f8;
+  --m-consult: #5b4b9e;
+  --m-consult-soft: #eeecf8;
+  --m-fitness: #a2632b;
+  --m-fitness-soft: #f8efe5;
+  --m-diet: #49773c;
+  --m-diet-soft: #edf3e9;
+  --m-game: #8a3e63;
+  --m-game-soft: #f8eaf0;
+
+  /* 训练部位色（7 个部位各一色，全站统一） */
+  --part-chest: #b4574a;
+  --part-back: #3d6fa8;
+  --part-leg: #4f8a5b;
+  --part-shoulder: #c08a2e;
+  --part-arm: #7a5aa6;
+  --part-core: #3e8e8e;
+  --part-cardio: #b04a6b;
+
+  /* 间距 */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s7: 32px;
+  --s8: 48px;
+
+  /* 圆角 */
+  --r-s: 6px;
+  --r-m: 8px;
+  --r-l: 12px;
+  --r-xl: 16px;
+
+  /* 阴影：只用于浮层 */
+  --shadow-1: 0 1px 2px rgba(28, 27, 25, 0.05);
+  --shadow-2: 0 6px 16px rgba(28, 27, 25, 0.08);
+  --shadow-3: 0 16px 48px rgba(28, 27, 25, 0.14);
+
+  --sidebar-w: 216px;
+  --topbar-h: 68px;
+}
+
+[data-theme="dark"] {
+  --bg: #121211;
+  --surface: #1a1a18;
+  --surface-2: #1f1f1c;
+  --surface-3: #252521;
+  --sidebar-bg: #161615;
+
+  --text: #f0efec;
+  --text-2: #a5a19a;
+  --text-3: #77736c;
+
+  --border: #2c2b27;
+  --border-2: #3d3b35;
+
+  --ink: #f0efec;
+  --ink-hover: #dcdad4;
+  --on-ink: #1a1a18;
+
+  --success: #7fbb9e;
+  --success-soft: #1e2f27;
+  --danger: #e08c86;
+  --danger-soft: #32201f;
+  --warning: #d3a660;
+  --warning-soft: #2e2617;
+  --info: #8fb3e0;
+  --info-soft: #1c2735;
+
+  --m-content: #e09a90;
+  --m-content-soft: #2f2220;
+  --m-dev: #8fb3e0;
+  --m-dev-soft: #1c2735;
+  --m-consult: #b3a6e0;
+  --m-consult-soft: #262237;
+  --m-fitness: #dda878;
+  --m-fitness-soft: #2f2620;
+  --m-diet: #9dc48c;
+  --m-diet-soft: #212b1e;
+  --m-game: #d79ab8;
+  --m-game-soft: #2f1f28;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
