@@ -151,13 +151,48 @@ function paintStatus(status) {
     if (status.kind === 'saving') text.textContent = '保存中…';
     else if (status.kind === 'dirty') text.textContent = '有未保存改动';
     else if (status.kind === 'error') text.textContent = '保存失败';
+    else if (status.kind === 'conflict') text.textContent = '保存已暂停';
     else text.textContent = status.savedAt ? `已保存 ${timeOf(status.savedAt)}` : '已保存';
     el.title =
       status.kind === 'error'
         ? status.error || '保存失败，请点击保存重试'
+        : status.kind === 'conflict'
+        ? '这份数据已被其他页面更新，为避免覆盖已暂停保存'
         : status.savedAt
         ? `最后保存：${new Date(status.savedAt).toLocaleString('zh-CN')}`
         : '';
+  });
+  paintConflictBanner(status);
+}
+
+/** 撞版本时在内容区顶部挂一条醒目提示，两个出口：刷新（安全）/ 强行覆盖（明确意图） */
+function paintConflictBanner(status) {
+  const host = document.querySelector('#conflict-host');
+  if (!host) return;
+  const show = status.kind === 'conflict';
+  host.dataset.show = show ? '1' : '0';
+  if (!show) {
+    host.innerHTML = '';
+    return;
+  }
+  if (host.dataset.rendered === '1') return;
+  host.dataset.rendered = '1';
+  host.innerHTML = `
+    <div class="conflict-bar" role="alert">
+      <span class="conflict-icon">${icon('alert', 16)}</span>
+      <div class="conflict-text">
+        <strong>保存已暂停：这份数据在别处被更新过</strong>
+        <span class="tiny">继续保存会覆盖另一个页面刚存的内容。建议先刷新看看最新数据。</span>
+      </div>
+      <button class="btn btn-sm" data-conflict="reload">刷新页面</button>
+      <button class="btn btn-sm btn-ghost" data-conflict="force">用本页覆盖</button>
+    </div>`;
+  host.querySelector('[data-conflict="reload"]').addEventListener('click', () => location.reload());
+  host.querySelector('[data-conflict="force"]').addEventListener('click', async () => {
+    host.dataset.rendered = '0';
+    const res = await store.flush({ force: true });
+    if (res.ok) toast('已用本页数据覆盖保存');
+    else toast('覆盖失败：' + res.error, 'error');
   });
 }
 
@@ -230,7 +265,7 @@ async function boot() {
 
   document.documentElement.dataset.theme = (data.settings && data.settings.theme) || 'light';
 
-  store = createStore(data, { save: (state) => api.saveData(state), debounceMs: 1500 });
+  store = createStore(data, { save: (state, opts) => api.saveData(state, opts), debounceMs: 1500 });
   store.subscribe(() => renderView());
   store.onStatus(paintStatus);
 
@@ -251,6 +286,17 @@ async function boot() {
     if (store.dirty) {
       e.preventDefault();
       e.returnValue = '';
+    }
+  });
+
+  // 页面切到后台或即将卸载时抢存一次，避免「改完 1 秒内关页面」丢数据
+  window.addEventListener('pagehide', () => {
+    if (store.dirty) store.flush({ beacon: true }).catch(() => {});
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && store.dirty) {
+      store.flush().catch(() => {});
     }
   });
 

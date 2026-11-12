@@ -55,5 +55,9 @@ export function validateData(data) {
   if (!data.settings || typeof data.settings !== 'object' || Array.isArray(data.settings)) {
     return { ok: false, error: '字段 settings 必须是对象' };
   }
+  // rev 是可选的写入版本号：老备份里没有这个字段也算合法，但给了就必须是合法整数
+  if (data.rev !== undefined && (!Number.isInteger(data.rev) || data.rev < 0)) {
+    return { ok: false, error: '字段 rev 必须是非负整数' };
+  }
   return { ok: true };
 }

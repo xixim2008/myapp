@@ -34,8 +34,12 @@ export function createStore(dir, options = {}) {
     }
   }
 
-  /** 写盘：校验 → 旧文件备份 → 写临时文件 → 原子替换 */
-  function write(data) {
+  /**
+   * 写盘：校验 → 版本冲突检查 → 旧文件备份 → 写临时文件 → 原子替换
+   * opts.expectRev：调用方认为自己基于哪个版本改的，对不上就拒绝（防止旧页面覆盖新数据）
+   * opts.force：主动覆盖（导入备份这类明确意图），跳过版本检查
+   */
+  function write(data, opts = {}) {
     const check = validateData(data);
     if (!check.ok) {
       const err = new Error(check.error);
@@ -45,13 +49,27 @@ export function createStore(dir, options = {}) {
     ensureDir();
 
     const raw = readRaw();
+    let prevValid = false;
+    let prevRev = 0;
+    let prevSavedAt = null;
     if (raw !== null) {
-      let prevValid = false;
       try {
-        prevValid = validateData(JSON.parse(raw)).ok;
+        const prev = JSON.parse(raw);
+        prevValid = validateData(prev).ok;
+        prevRev = Number.isInteger(prev.rev) ? prev.rev : 0;
+        prevSavedAt = prev.settings ? prev.settings.lastSavedAt ?? null : null;
       } catch {
         prevValid = false;
       }
+    }
+
+    if (!opts.force && typeof opts.expectRev === 'number' && opts.expectRev !== prevRev) {
+      const err = new Error('这份数据已被其他页面更新过');
+      err.conflict = { rev: prevRev, savedAt: prevSavedAt };
+      throw err;
+    }
+
+    if (raw !== null) {
       if (prevValid) {
         fs.writeFileSync(bakFile, raw, 'utf8');
       } else {
@@ -61,9 +79,15 @@ export function createStore(dir, options = {}) {
     }
 
     const savedAt = new Date().toISOString();
-    const payload = { ...data, settings: { ...data.settings, lastSavedAt: savedAt } };
+    const nextRev = prevRev + 1;
+    const payload = {
+      ...data,
+      rev: nextRev,
+      settings: { ...data.settings, lastSavedAt: savedAt }
+    };
     fs.writeFileSync(tmpFile, JSON.stringify(payload, null, 2), 'utf8');
     fs.renameSync(tmpFile, file);
+    data.rev = nextRev; // 让调用方拿到新版本号
     corrupted = false;
     return savedAt;
   }

@@ -107,10 +107,24 @@ export function createApp({ store, publicDir = PUBLIC_DIR }) {
             return sendJSON(res, 400, { ok: false, error: '请求体不是合法 JSON' });
           }
           try {
-            const savedAt = store.write(data);
-            return sendJSON(res, 200, { ok: true, savedAt });
+            const savedAt = store.write(data, {
+              // 没带版本号一律按 0 处理：老页面/老缓存也不能悄悄覆盖新数据
+              expectRev: typeof data.rev === 'number' ? data.rev : 0,
+              force: req.headers['x-force'] === '1'
+            });
+            return sendJSON(res, 200, { ok: true, savedAt, rev: data.rev });
           } catch (err) {
             if (err.invalid) return sendJSON(res, 400, { ok: false, error: err.message });
+            if (err.conflict) {
+              // 409：这个页面拿的是旧数据，拒绝写入，让前端提示刷新，绝不覆盖
+              return sendJSON(res, 409, {
+                ok: false,
+                error: err.message,
+                conflict: true,
+                rev: err.conflict.rev,
+                savedAt: err.conflict.savedAt
+              });
+            }
             throw err;
           }
         }

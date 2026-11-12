@@ -115,3 +115,54 @@ test('validateData 对合法数据返回 ok', () => {
   delete noSettings.settings;
   assert.equal(validateData(noSettings).ok, false);
 });
+
+test('write 每次把 rev 加一，并把新版本号写回传入对象', () => {
+  const store = createStore(tmpDir());
+  const first = createDefaults();
+  store.write(first);
+  assert.equal(first.rev, 1);
+  const second = createDefaults();
+  second.rev = 1;
+  store.write(second);
+  assert.equal(second.rev, 2);
+
+  const onDisk = JSON.parse(fs.readFileSync(store.file, 'utf8'));
+  assert.equal(onDisk.rev, 2);
+});
+
+test('版本号对不上时 write 抛 conflict，且不落盘', () => {
+  const store = createStore(tmpDir());
+  const first = createDefaults();
+  store.write(first); // rev = 1
+
+  const stale = createDefaults();
+  stale.rev = 0; // 假装是更新前的页面
+  stale.memos.push({ id: 'm1', text: '过期改动' });
+  let caught = null;
+  try {
+    store.write(stale, { expectRev: 0 });
+  } catch (err) {
+    caught = err;
+  }
+  assert.ok(caught, '应该抛错');
+  assert.ok(caught.conflict, '应带 conflict 标记');
+  assert.equal(caught.conflict.rev, 1);
+
+  const onDisk = JSON.parse(fs.readFileSync(store.file, 'utf8'));
+  assert.equal(onDisk.memos.length, 0, '过期数据不能落盘');
+});
+
+test('force 可以跳过版本检查（导入备份）', () => {
+  const store = createStore(tmpDir());
+  const first = createDefaults();
+  store.write(first);
+
+  const imported = createDefaults();
+  imported.rev = 0;
+  imported.memos.push({ id: 'm1', text: '来自备份' });
+  store.write(imported, { force: true, expectRev: 0 });
+
+  const onDisk = JSON.parse(fs.readFileSync(store.file, 'utf8'));
+  assert.equal(onDisk.memos[0].text, '来自备份');
+  assert.equal(onDisk.rev, 2);
+});

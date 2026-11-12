@@ -52,7 +52,10 @@ test('GET /api/data 返回完整结构', async () => {
 
 test('PUT /api/data 写入成功并可读回', async () => {
   await withServer(async ({ base, dataDir }) => {
+    // 带上当前版本号再写（服务端会拒绝过期版本，这是有意的并发保护）
+    const current = await (await fetch(`${base}/api/data`)).json();
     const payload = createDefaults();
+    payload.rev = current.rev;
     payload.plans.push({ id: 'p1', title: '写盘验证' });
 
     const res = await fetch(`${base}/api/data`, {
@@ -122,5 +125,73 @@ test('GET /api/data/status 返回文件状态', async () => {
     assert.equal(body.exists, true);
     assert.equal(body.corrupted, false);
     assert.ok(body.size > 0);
+  });
+});
+
+test('PUT 带旧版本号时被拒绝（409），文件不被覆盖', async () => {
+  await withServer(async ({ base, store }) => {
+    const first = await (await fetch(`${base}/api/data`)).json();
+    const rev = first.rev;
+
+    // 另一个页面先保存了一次，版本号被推高
+    const a = { ...first, memos: [{ id: 'm1', text: '来自页面 A' }] };
+    const resA = await fetch(`${base}/api/data`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(a)
+    });
+    assert.equal(resA.status, 200);
+    const bodyA = await resA.json();
+    assert.equal(bodyA.rev, rev + 1, '每次保存版本号 +1');
+
+    // 拿着旧版本号的页面 B 再来写，必须被挡下
+    const b = { ...first, memos: [{ id: 'm2', text: '来自页面 B（过期）' }] };
+    const resB = await fetch(`${base}/api/data`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(b)
+    });
+    assert.equal(resB.status, 409);
+    const bodyB = await resB.json();
+    assert.equal(bodyB.conflict, true);
+    assert.equal(bodyB.rev, rev + 1);
+
+    const onDisk = JSON.parse(fs.readFileSync(store.file, 'utf8'));
+    assert.equal(onDisk.memos.length, 1);
+    assert.equal(onDisk.memos[0].text, '来自页面 A', '磁盘上应保留先写的那份');
+  });
+});
+
+test('带 x-force 头可以强行覆盖（导入备份用）', async () => {
+  await withServer(async ({ base, store }) => {
+    const first = await (await fetch(`${base}/api/data`)).json();
+    await fetch(`${base}/api/data`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...first, memos: [{ id: 'm1', text: 'A' }] })
+    });
+
+    const forced = { ...first, memos: [{ id: 'm2', text: '备份恢复' }] };
+    const res = await fetch(`${base}/api/data`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-force': '1' },
+      body: JSON.stringify(forced)
+    });
+    assert.equal(res.status, 200);
+
+    const onDisk = JSON.parse(fs.readFileSync(store.file, 'utf8'));
+    assert.equal(onDisk.memos[0].text, '备份恢复');
+  });
+});
+
+test('损坏的 rev 不被接受（必须是整数）', async () => {
+  await withServer(async ({ base }) => {
+    const data = await (await fetch(`${base}/api/data`)).json();
+    const res = await fetch(`${base}/api/data`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...data, rev: 'abc' })
+    });
+    assert.equal(res.status, 400);
   });
 });

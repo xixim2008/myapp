@@ -1303,3 +1303,41 @@ button.card:hover {
   border-color: var(--border-2);
   background: var(--surface-2);
 }
+
+/* ---------- 版本冲突提示条 ---------- */
+#conflict-host[data-show="0"] {
+  display: none;
+}
+#conflict-host {
+  padding: 0 28px;
+}
+.conflict-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.conflict-icon {
+  display: inline-flex;
+  color: var(--warning);
+}
+.conflict-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.conflict-text strong {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.conflict-text .tiny {
+  color: inherit;
+  opacity: 0.78;
+}
